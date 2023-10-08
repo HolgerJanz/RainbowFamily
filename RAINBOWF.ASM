@@ -136,6 +136,8 @@ init    lda >mytopadr  ;check free memory
         sta $0344
         lda >msgerr
         sta $0345
+        lda <msgerrL
+        sta $0348
         jsr print
 * jump to DOS
         jmp (DOSVEC)
@@ -145,22 +147,24 @@ memok   lda <msgok
         sta $0344
         lda >msgok
         sta $0345
+        lda <msgokL
+        sta $0348
         jsr print
 * and end
         rts
 
 print   ldx #$00
-        lda #$09   ; put line
+        lda #$0B   ; put chars
         sta $0342
         lda #$00
         sta $0349
-        lda #$FF
-        sta $0348
         jsr CIOV
         rts
 
-msgerr  dta c'Not enough free RAM - remove cartridge',b($9b)
-msgok   dta c'Loading RAINBOW FAMILY ...',b($9b)
+msgerr  dta b($9b),c'Not enough free RAM - remove cartridge',b($9b)
+msgerrL equ *-msgerr
+msgok   dta b($9b),c'Loading RAINBOW FAMILY ...',b($9b)
+msgokL  equ *-msgok
 
         blk dos INITAD
         dta a(init)
@@ -475,7 +479,7 @@ muxneu  lda #0          ;Flag fuer Pause vorerst
         lda mupnt1h,X       
         sta muxnadr+2
 muxnadr lda $ffff       ;Tonhoehe der Note
-        cmp #begin      ;ist START-Befehl?
+        cmp <begin      ;ist START-Befehl?
         bne muxn1       ;nein ->
 
         lda voctbl,X    ;Notenzeiger auf Tabellen-
@@ -485,7 +489,7 @@ muxnadr lda $ffff       ;Tonhoehe der Note
 
         jmp muxneu      ;und von Vorne ==>
 
-muxn1   cmp #thend      ;ist ENDE-Befehl?
+muxn1   cmp <thend      ;ist ENDE-Befehl?
         beq muxpau      ;ja, dann Pause imitieren ->
 
         pha             ;Tonhoehe merken
@@ -513,13 +517,13 @@ muxdadr lda $ffff       ; Dauer lesen
         asl @           ;Index mal 2
         tay
         pla             ;Tonhoehe wieder holen
-        cmp #pause      ;war es ein PAUSE Befehl?
+        cmp <pause      ;war es ein PAUSE Befehl?
         beq muxpau      ;ja ,dann Pausenbearbeitung
 
         sta AUDF1,Y     ;sonst Note an POKEY
 muxpen  rts
 
-muxpau  lda #pause      ;Huellk. ausschalten
+muxpau  lda <pause      ;Huellk. ausschalten
         sta mupau1,X
         rts
 
@@ -530,7 +534,7 @@ muxpau  lda #pause      ;Huellk. ausschalten
 *
 
 muxhul  lda mupau1,X    ;Flag fuer Pause?
-        cmp #pause      ;Ist auf Pause?
+        cmp <pause      ;Ist auf Pause?
         bne muxh1       ;nein -> normale Huellk.
 
         lda #0          ;Pause: Lautstaerke auf Null
@@ -543,7 +547,7 @@ muxh1   lda mhltbl,X    ;Huellkurven Basisadresse
         sta muxhadr+2
         ldy muhpt1,X    ;aktueller Zeiger in Hk.
 muxhadr lda $ffff,Y     ;neuer Stuetzpunkt
-        cmp #thend      ;ist Huellk. zu Ende?
+        cmp <thend      ;ist Huellk. zu Ende?
         beq muxhen      ;ja, dann fertig!
 
         pha             ;Stuetzpunkt merken          
@@ -604,10 +608,10 @@ huell2  equ *
 huell3  equ *
 huell4  equ *
         dta b(7,10,10,10,8,9,6,7)
-        dta b(4,4,5,5,5,2,2,2,3,3,3,1,1,1,0,thend)
+        dta b(4,4,5,5,5,2,2,2,3,3,3,1,1,1,0),l(thend)
 
 *        dta b(2,6,10,10,9,8,7,6
-*        dta b(5,5,4,4,4,3,2,2,2,1,0,thend)
+*        dta b(5,5,4,4,4,3,2,2,2,1,0),l(thend)
 
 ***********************************************************
 * Display List
